@@ -5,7 +5,7 @@ import { getStorage } from 'firebase/storage';
 
 // Firebase configuration from environment variables
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDemoConfigKeyForOfflineUsageMode123",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "demo_firebase_api_key_placeholder",
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "careerforge-ats.firebaseapp.com",
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "careerforge-ats",
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "careerforge-ats.appspot.com",
