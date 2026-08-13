@@ -1,0 +1,41 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if request is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to verify user ownership
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // User document root
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+      
+      // Resumes collection
+      match /resumes/{resumeId} {
+        allow read, create, update, delete: if isOwner(userId);
+      }
+      
+      // ATS Analyses collection
+      match /analyses/{analysisId} {
+        allow read, create, update, delete: if isOwner(userId);
+      }
+      
+      // Job Match Postings collection
+      match /jobs/{jobId} {
+        allow read, create, update, delete: if isOwner(userId);
+      }
+      
+      // User Settings collection
+      match /settings/{settingsId} {
+        allow read, create, update, delete: if isOwner(userId);
+      }
+    }
+  }
+}

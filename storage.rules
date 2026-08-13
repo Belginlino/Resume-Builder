@@ -1,0 +1,22 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // User uploaded resume documents
+    match /users/{userId}/resumes/{allPaths=**} {
+      // User must be authenticated and owner of the directory
+      allow read, delete: if request.auth != null && request.auth.uid == userId;
+      
+      // Allow upload only if under 10MB and valid PDF or DOCX file
+      allow create, update: if request.auth != null 
+                            && request.auth.uid == userId
+                            && request.resource.size < 10 * 1024 * 1024
+                            && (
+                              request.resource.contentType.matches('application/pdf') ||
+                              request.resource.contentType.matches('application/vnd.openxmlformats-officedocument.wordprocessingml.document') ||
+                              request.resource.contentType.matches('application/msword')
+                            );
+    }
+  }
+}
