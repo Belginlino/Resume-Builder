@@ -58,25 +58,49 @@ export const exportResumeToPDF = async (elementId, rawFilename = 'Resume.pdf') =
       heightLeft -= pdfHeight;
     }
 
-    // Generate explicit PDF Blob with application/pdf MIME type
     const pdfBlob = pdf.output('blob');
     const typedBlob = new Blob([pdfBlob], { type: 'application/pdf' });
     const blobUrl = URL.createObjectURL(typedBlob);
 
-    // Trigger direct file download
-    const downloadLink = document.createElement('a');
-    downloadLink.style.display = 'none';
-    downloadLink.href = blobUrl;
-    downloadLink.setAttribute('download', filename);
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
+    let downloaded = false;
 
-    setTimeout(() => {
-      if (document.body.contains(downloadLink)) {
-        document.body.removeChild(downloadLink);
+    // Check if running in a sandbox/iframe and bypass name stripping using a temporary top-level popup tab
+    try {
+      const isIframe = window.self !== window.top;
+      if (isIframe) {
+        const newWindow = window.open('', '_blank');
+        if (newWindow) {
+          const doc = newWindow.document;
+          const a = doc.createElement('a');
+          a.href = blobUrl;
+          a.setAttribute('download', filename);
+          doc.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            newWindow.close();
+          }, 350);
+          downloaded = true;
+        }
       }
-      URL.revokeObjectURL(blobUrl);
-    }, 1500);
+    } catch (e) {
+      console.warn('Sandbox bypass window blocked, using default fallback:', e);
+    }
+
+    if (!downloaded) {
+      const downloadLink = document.createElement('a');
+      downloadLink.style.display = 'none';
+      downloadLink.href = blobUrl;
+      downloadLink.setAttribute('download', filename);
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+
+      setTimeout(() => {
+        if (document.body.contains(downloadLink)) {
+          document.body.removeChild(downloadLink);
+        }
+        URL.revokeObjectURL(blobUrl);
+      }, 1500);
+    }
 
     return true;
   } catch (error) {
@@ -180,23 +204,85 @@ export const generateResumePlainText = (resume) => {
 
 export const exportResumeToPlainText = (resume, filename = 'Resume.txt') => {
   const text = generateResumePlainText(resume);
-  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
+  const typedBlob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const blobUrl = URL.createObjectURL(typedBlob);
+
+  let downloaded = false;
+  try {
+    const isIframe = window.self !== window.top;
+    if (isIframe) {
+      const newWindow = window.open('', '_blank');
+      if (newWindow) {
+        const doc = newWindow.document;
+        const a = doc.createElement('a');
+        a.href = blobUrl;
+        a.setAttribute('download', filename);
+        doc.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          newWindow.close();
+        }, 350);
+        downloaded = true;
+      }
+    }
+  } catch (e) {
+    console.warn('Sandbox bypass window blocked:', e);
+  }
+
+  if (!downloaded) {
+    const link = document.createElement('a');
+    link.style.display = 'none';
+    link.href = blobUrl;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => {
+      if (document.body.contains(link)) document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    }, 1500);
+  }
 };
 
 export const exportResumeToJSON = (resume, filename = 'Resume.json') => {
   const json = JSON.stringify(resume, null, 2);
-  const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
+  const typedBlob = new Blob([json], { type: 'application/json;charset=utf-8' });
+  const blobUrl = URL.createObjectURL(typedBlob);
+
+  let downloaded = false;
+  try {
+    const isIframe = window.self !== window.top;
+    if (isIframe) {
+      const newWindow = window.open('', '_blank');
+      if (newWindow) {
+        const doc = newWindow.document;
+        const a = doc.createElement('a');
+        a.href = blobUrl;
+        a.setAttribute('download', filename);
+        doc.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          newWindow.close();
+        }, 350);
+        downloaded = true;
+      }
+    }
+  } catch (e) {
+    console.warn('Sandbox bypass window blocked:', e);
+  }
+
+  if (!downloaded) {
+    const link = document.createElement('a');
+    link.style.display = 'none';
+    link.href = blobUrl;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => {
+      if (document.body.contains(link)) document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    }, 1500);
+  }
 };
+
+
 
