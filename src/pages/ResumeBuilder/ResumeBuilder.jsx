@@ -87,12 +87,31 @@ export const ResumeBuilder = () => {
   }, [id, resumes, setActiveResume]);
 
   const [saving, setSaving] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
   const [lastSavedTime, setLastSavedTime] = useState('Draft ready');
   const [aiLoading, setAiLoading] = useState(false);
   const [aiFeedbackMessage, setAiFeedbackMessage] = useState('');
   
   // Skill tag input states
   const [newSkillInput, setNewSkillInput] = useState({ category: 'programming', tag: '' });
+
+  const handleDownloadPDF = async () => {
+    setExportingPdf(true);
+    try {
+      const rawName = resumeData.name || 'Resume';
+      const baseName = rawName.replace(/\.pdf$/i, '');
+      const success = await exportResumeToPDF('resume-builder-preview-box', `${baseName}.pdf`);
+      if (success) {
+        addNotification('PDF downloaded successfully!', 'success');
+      }
+    } catch (err) {
+      console.error('PDF export error:', err);
+      addNotification('Failed to generate PDF. Opening print dialog.', 'error');
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
 
   // Handle nested object changes
   const updatePersonalInfo = (field, value) => {
@@ -478,12 +497,14 @@ export const ResumeBuilder = () => {
           </button>
 
           <button
-            onClick={() => exportResumeToPDF('resume-builder-preview-box', `${resumeData.name || 'Resume'}.pdf`)}
-            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-neutral-900 text-white hover:bg-neutral-800 flex items-center gap-1.5 shadow-xs"
+            onClick={handleDownloadPDF}
+            disabled={exportingPdf}
+            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-neutral-900 text-white hover:bg-neutral-800 flex items-center gap-1.5 shadow-xs disabled:opacity-60"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>PDF</span>
+            <span>{exportingPdf ? 'Exporting...' : 'PDF'}</span>
           </button>
+
 
           <button
             onClick={() => exportResumeToPlainText(resumeData, `${(resumeData.name || 'Resume').replace(/\.[^/.]+$/, '')}_ATS.txt`)}

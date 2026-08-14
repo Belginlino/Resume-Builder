@@ -1,26 +1,43 @@
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
-export const exportResumeToPDF = async (elementId, filename = 'Resume.pdf') => {
-  const element = document.getElementById(elementId);
-  if (!element) {
+export const exportResumeToPDF = async (elementId, rawFilename = 'Resume.pdf') => {
+  // Ensure the filename strictly ends with .pdf and has valid characters
+  let cleanName = (rawFilename || 'Resume.pdf').trim();
+  cleanName = cleanName.replace(/\.pdf$/i, ''); // Strip existing .pdf
+  cleanName = cleanName.replace(/[^a-zA-Z0-9_\-\s]/g, '').trim(); // Remove invalid filename characters
+  if (!cleanName) cleanName = 'Resume';
+  const filename = `${cleanName}.pdf`;
+
+  const targetElement = document.getElementById(elementId) || document.getElementById('resume-a4-preview');
+  if (!targetElement) {
     throw new Error(`Resume preview container #${elementId} was not found.`);
   }
 
   try {
-    const canvas = await html2canvas(element, {
+    const canvas = await html2canvas(targetElement, {
       scale: 2.5,
       useCORS: true,
+      allowTaint: true,
       logging: false,
       backgroundColor: '#FFFFFF',
-      windowWidth: 1200
+      onclone: (clonedDoc) => {
+        // Reset scale transforms in the cloned DOM so canvas captures full unscaled A4 page
+        const clonedTarget = clonedDoc.getElementById(elementId) || clonedDoc.getElementById('resume-a4-preview');
+        if (clonedTarget) {
+          clonedTarget.style.transform = 'none';
+          clonedTarget.style.transformOrigin = 'unset';
+          clonedTarget.style.margin = '0 auto';
+        }
+      }
     });
 
     const imgData = canvas.toDataURL('image/jpeg', 0.98);
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
-      format: 'a4'
+      format: 'a4',
+      compress: true
     });
 
     const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -41,7 +58,26 @@ export const exportResumeToPDF = async (elementId, filename = 'Resume.pdf') => {
       heightLeft -= pdfHeight;
     }
 
-    pdf.save(filename);
+    // Generate explicit PDF Blob with application/pdf MIME type
+    const pdfBlob = pdf.output('blob');
+    const typedBlob = new Blob([pdfBlob], { type: 'application/pdf' });
+    const blobUrl = URL.createObjectURL(typedBlob);
+
+    // Trigger direct file download
+    const downloadLink = document.createElement('a');
+    downloadLink.style.display = 'none';
+    downloadLink.href = blobUrl;
+    downloadLink.setAttribute('download', filename);
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+
+    setTimeout(() => {
+      if (document.body.contains(downloadLink)) {
+        document.body.removeChild(downloadLink);
+      }
+      URL.revokeObjectURL(blobUrl);
+    }, 1500);
+
     return true;
   } catch (error) {
     console.error('PDF generation error:', error);
@@ -49,6 +85,7 @@ export const exportResumeToPDF = async (elementId, filename = 'Resume.pdf') => {
     return false;
   }
 };
+
 
 export const printResume = () => {
   window.print();
