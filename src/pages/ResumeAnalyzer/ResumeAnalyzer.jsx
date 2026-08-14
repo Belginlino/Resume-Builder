@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { extractTextFromPDF } from '../../services/parsers/pdfParser';
 import { extractTextFromDOCX } from '../../services/parsers/docxParser';
@@ -10,24 +10,34 @@ import {
   AlertCircle, 
   CheckCircle2, 
   Info, 
-  ArrowRight,
-  ShieldCheck,
-  Tag,
-  Sparkles
+  ArrowRight, 
+  ShieldCheck, 
+  Tag, 
+  Sparkles,
+  Edit3,
+  RefreshCw
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { demoResumes } from '../../data/demoData';
 
 export const ResumeAnalyzer = () => {
-  const { runATSAnalysis, activeAnalysis, saveResume } = useApp();
+  const { runATSAnalysis, activeAnalysis, saveResume, setActiveResume, addNotification } = useApp();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [dragActive, setDragActive] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [jobDescriptionInput, setJobDescriptionInput] = useState('');
   const [currentAnalysis, setCurrentAnalysis] = useState(activeAnalysis);
-  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'issues' | 'keywords'
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') === 'keywords' ? 'keywords' : 'overview');
   const [keywordFilter, setKeywordFilter] = useState('all'); // 'all' | 'found' | 'missing'
+
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'keywords') setActiveTab('keywords');
+    else if (tabParam === 'overview') setActiveTab('overview');
+  }, [searchParams]);
 
   // Drag & drop handlers
   const handleDrag = (e) => {
@@ -81,15 +91,33 @@ export const ResumeAnalyzer = () => {
       const analysisResult = await runATSAnalysis(parsedResume, jobDescriptionInput);
       
       // Save parsed resume to user list
-      await saveResume({
+      const saved = await saveResume({
         ...parsedResume,
         atsScore: analysisResult.atsScore
       });
 
+      setActiveResume(saved);
       setCurrentAnalysis(analysisResult);
       setUploadProgress(100);
     } catch (err) {
-      alert(err.message || 'Error processing resume file.');
+      addNotification(err.message || 'Error processing resume file.', 'error');
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  // Run Sample Scan
+  const handleSampleScan = async () => {
+    setAnalyzing(true);
+    setUploadProgress(40);
+    try {
+      const sample = JSON.parse(JSON.stringify(demoResumes[0]));
+      const analysisResult = await runATSAnalysis(sample, jobDescriptionInput);
+      setCurrentAnalysis(analysisResult);
+      setUploadProgress(100);
+      addNotification('Sample ATS Analysis completed', 'success');
+    } catch (err) {
+      addNotification('Sample scan failed', 'error');
     } finally {
       setAnalyzing(false);
     }
@@ -131,7 +159,7 @@ export const ResumeAnalyzer = () => {
             <p className="text-xs text-neutral-500 mt-1">Drop your PDF or DOCX file here or browse from your device.</p>
           </div>
 
-          <div className="flex justify-center">
+          <div className="flex flex-wrap items-center justify-center gap-3">
             <label className="cursor-pointer px-4 py-2 rounded-lg text-xs font-semibold bg-neutral-900 text-white hover:bg-neutral-800 transition-all shadow-xs inline-flex items-center gap-2">
               <span>Browse Files</span>
               <input
@@ -141,6 +169,16 @@ export const ResumeAnalyzer = () => {
                 className="hidden"
               />
             </label>
+
+            <button
+              type="button"
+              onClick={handleSampleScan}
+              disabled={analyzing}
+              className="px-3.5 py-2 rounded-lg text-xs font-semibold bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 text-neutral-800 dark:text-neutral-200 hover:bg-neutral-200 flex items-center gap-1.5"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Test Sample Scan</span>
+            </button>
           </div>
 
           <p className="text-[11px] text-neutral-400">Supported formats: PDF, DOCX (Max 10MB)</p>
@@ -188,19 +226,29 @@ export const ResumeAnalyzer = () => {
               <p className="text-xs text-neutral-500">Evaluated on {new Date(analysis.createdAt || Date.now()).toLocaleDateString()}</p>
             </div>
 
-            <div className="flex items-center gap-4 bg-neutral-50 dark:bg-neutral-800/60 p-4 rounded-xl border border-neutral-200 dark:border-neutral-700">
-              <div className="text-center">
-                <span className="text-4xl font-bold font-mono text-neutral-900 dark:text-white">
-                  {analysis.atsScore}
-                </span>
-                <span className="text-xs text-neutral-400 font-mono">/ 100</span>
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-4 bg-neutral-50 dark:bg-neutral-800/60 p-4 rounded-xl border border-neutral-200 dark:border-neutral-700">
+                <div className="text-center">
+                  <span className="text-4xl font-bold font-mono text-neutral-900 dark:text-white">
+                    {analysis.atsScore}
+                  </span>
+                  <span className="text-xs text-neutral-400 font-mono">/ 100</span>
+                </div>
+                <div className="border-l border-neutral-200 dark:border-neutral-700 pl-4">
+                  <span className="px-2.5 py-1 rounded text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                    {analysis.compatibilityLabel || 'Strong ATS Compatibility'}
+                  </span>
+                  <p className="text-[11px] text-neutral-500 mt-1">High text extraction reliability.</p>
+                </div>
               </div>
-              <div className="border-l border-neutral-200 dark:border-neutral-700 pl-4">
-                <span className="px-2.5 py-1 rounded text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                  {analysis.compatibilityLabel || 'Strong ATS Compatibility'}
-                </span>
-                <p className="text-[11px] text-neutral-500 mt-1">High text extraction reliability.</p>
-              </div>
+
+              <button
+                onClick={() => navigate(analysis.resumeId && analysis.resumeId !== 'uploaded_resume' ? `/resume-builder/${analysis.resumeId}` : '/resume-builder')}
+                className="px-4 py-2.5 rounded-xl bg-neutral-900 text-white hover:bg-neutral-800 text-xs font-semibold flex items-center gap-2 shadow-xs"
+              >
+                <Edit3 className="w-4 h-4" />
+                <span>Edit in Builder</span>
+              </button>
             </div>
           </div>
 
@@ -231,13 +279,13 @@ export const ResumeAnalyzer = () => {
           {/* Tabs Control */}
           <div className="flex border-b border-neutral-200 dark:border-neutral-800 gap-6 text-xs font-medium">
             <button
-              onClick={() => setActiveTab('overview')}
+              onClick={() => { setActiveTab('overview'); setSearchParams({ tab: 'overview' }); }}
               className={`pb-2.5 transition-colors border-b-2 ${activeTab === 'overview' ? 'border-neutral-900 text-neutral-900 dark:border-white dark:text-white font-semibold' : 'border-transparent text-neutral-500'}`}
             >
               Issues & Fixes
             </button>
             <button
-              onClick={() => setActiveTab('keywords')}
+              onClick={() => { setActiveTab('keywords'); setSearchParams({ tab: 'keywords' }); }}
               className={`pb-2.5 transition-colors border-b-2 ${activeTab === 'keywords' ? 'border-neutral-900 text-neutral-900 dark:border-white dark:text-white font-semibold' : 'border-transparent text-neutral-500'}`}
             >
               Keyword Analysis ({analysis.keywordDistribution?.length || 0})
@@ -326,7 +374,7 @@ export const ResumeAnalyzer = () => {
                     <button
                       key={f}
                       onClick={() => setKeywordFilter(f)}
-                      className={`px-2.5 py-1 rounded capitalize font-medium ${keywordFilter === f ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-600'}`}
+                      className={`px-2.5 py-1 rounded capitalize font-medium ${keywordFilter === f ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300'}`}
                     >
                       {f}
                     </button>
@@ -340,7 +388,7 @@ export const ResumeAnalyzer = () => {
                   .map((item, idx) => (
                     <div
                       key={idx}
-                      className={`p-3 rounded-lg border text-xs flex justify-between items-center ${item.status === 'found' ? 'bg-emerald-50 border-emerald-200 text-emerald-950' : 'bg-rose-50 border-rose-200 text-rose-950'}`}
+                      className={`p-3 rounded-lg border text-xs flex justify-between items-center ${item.status === 'found' ? 'bg-emerald-50 border-emerald-200 text-emerald-950 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300' : 'bg-rose-50 border-rose-200 text-rose-950 dark:bg-rose-950/40 dark:border-rose-800 dark:text-rose-300'}`}
                     >
                       <span className="font-medium">{item.keyword}</span>
                       <span className="font-mono text-[10px] font-bold uppercase">
@@ -358,3 +406,4 @@ export const ResumeAnalyzer = () => {
     </div>
   );
 };
+

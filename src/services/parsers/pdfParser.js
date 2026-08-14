@@ -1,7 +1,13 @@
 import * as pdfjsLib from 'pdfjs-dist';
 
 // Set worker source for pdfjs-dist
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+if (typeof window !== 'undefined' && 'Worker' in window) {
+  try {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version || '3.11.174'}/pdf.worker.min.js`;
+  } catch (e) {
+    console.warn('PDF.js worker initialization warning:', e);
+  }
+}
 
 export const extractTextFromPDF = async (fileOrArrayBuffer) => {
   try {
@@ -40,3 +46,4 @@ export const extractTextFromPDF = async (fileOrArrayBuffer) => {
     throw new Error('Failed to parse PDF document. Please verify the file is a valid readable PDF.');
   }
 };
+

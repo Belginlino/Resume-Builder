@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
-import { Search, Bell, Menu, User, LogOut, Settings, HelpCircle, CheckCircle2 } from 'lucide-react';
+import { Search, Bell, Menu, User, LogOut, Settings, HelpCircle, CheckCircle2, Moon, Sun } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const Header = ({ onToggleMobileSidebar }) => {
@@ -9,7 +9,25 @@ export const Header = ({ onToggleMobileSidebar }) => {
   const { setIsCommandPaletteOpen, notifications } = useApp();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return document.documentElement.classList.contains('dark') || 
+           localStorage.getItem('careerforge_theme') === 'dark';
+  });
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('careerforge_theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('careerforge_theme', 'light');
+    }
+  }, [isDarkMode]);
+
+  const toggleTheme = () => {
+    setIsDarkMode(prev => !prev);
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -31,7 +49,7 @@ export const Header = ({ onToggleMobileSidebar }) => {
         {/* Global Search Button */}
         <button
           onClick={() => setIsCommandPaletteOpen(true)}
-          className="flex items-center gap-3 px-3 py-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/50 text-neutral-500 hover:border-neutral-300 hover:bg-white transition-all text-xs md:text-sm w-48 md:w-72"
+          className="flex items-center gap-3 px-3 py-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/50 text-neutral-500 hover:border-neutral-300 hover:bg-white dark:hover:bg-neutral-800 transition-all text-xs md:text-sm w-48 md:w-72"
         >
           <Search className="w-4 h-4 text-neutral-400 shrink-0" />
           <span className="truncate">Search or type command...</span>
@@ -41,8 +59,17 @@ export const Header = ({ onToggleMobileSidebar }) => {
         </button>
       </div>
 
-      {/* Right: Notifications & Profile */}
+      {/* Right: Theme Toggle, Notifications & Profile */}
       <div className="flex items-center gap-2">
+        {/* Theme Toggle */}
+        <button
+          onClick={toggleTheme}
+          title={isDarkMode ? 'Switch to Light mode' : 'Switch to Dark mode'}
+          className="p-2 rounded-lg text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+        >
+          {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
+        </button>
+
         {/* Notifications Button */}
         <div className="relative">
           <button
@@ -119,3 +146,4 @@ export const Header = ({ onToggleMobileSidebar }) => {
     </header>
   );
 };
+
