@@ -9,30 +9,48 @@ export const exportResumeToPDF = async (elementId, rawFilename = 'Resume.pdf') =
   if (!cleanName) cleanName = 'Resume';
   const filename = `${cleanName}.pdf`;
 
-  const targetElement = document.getElementById(elementId) || document.getElementById('resume-a4-preview');
+  const fallbackElement = document.getElementById('resume-a4-preview') || document.getElementById('resume-builder-preview-box');
+  const targetElement = document.getElementById(elementId) || fallbackElement;
   if (!targetElement) {
     throw new Error(`Resume preview container #${elementId} was not found.`);
   }
 
+  const captureTarget = targetElement.querySelector?.('.a4-page') || targetElement;
+
   try {
-    const canvas = await html2canvas(targetElement, {
-      scale: 2.5,
+    // Render at a fixed high DPI for crisp output (300 dpi A4)
+    const A4_MM = { width: 210, height: 297 };
+    const TARGET_DPI = 300; // high-quality print DPI
+    const cssPxPerInch = 96; // standard CSS reference
+    const scale = TARGET_DPI / cssPxPerInch;
+
+    const canvas = await html2canvas(captureTarget, {
+      scale,
       useCORS: true,
       allowTaint: true,
       logging: false,
       backgroundColor: '#FFFFFF',
       onclone: (clonedDoc) => {
-        // Reset scale transforms in the cloned DOM so canvas captures full unscaled A4 page
-        const clonedTarget = clonedDoc.getElementById(elementId) || clonedDoc.getElementById('resume-a4-preview');
+        const clonedTarget = clonedDoc.querySelector('.a4-page') || clonedDoc.getElementById(elementId) || clonedDoc.getElementById('resume-builder-preview-box') || clonedDoc.getElementById('resume-a4-preview');
         if (clonedTarget) {
           clonedTarget.style.transform = 'none';
-          clonedTarget.style.transformOrigin = 'unset';
-          clonedTarget.style.margin = '0 auto';
+          clonedTarget.style.transformOrigin = 'initial';
+          clonedTarget.style.margin = '0';
+          // Force the cloned node to A4 CSS dimensions so html2canvas renders consistent physical size
+          clonedTarget.style.width = `${A4_MM.width}mm`;
+          clonedTarget.style.height = `${A4_MM.height}mm`;
+        }
+
+        const parentWrapper = clonedTarget?.parentElement;
+        if (parentWrapper) {
+          parentWrapper.style.transform = 'none';
+          parentWrapper.style.transformOrigin = 'initial';
+          parentWrapper.style.margin = '0';
         }
       }
     });
 
-    const imgData = canvas.toDataURL('image/jpeg', 0.98);
+    const imgData = canvas.toDataURL('image/png', 1.0);
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
@@ -48,13 +66,13 @@ export const exportResumeToPDF = async (elementId, rawFilename = 'Resume.pdf') =
     let heightLeft = imgHeight;
     let position = 0;
 
-    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
     heightLeft -= pdfHeight;
 
     while (heightLeft > 0) {
       position = heightLeft - imgHeight;
       pdf.addPage();
-      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
       heightLeft -= pdfHeight;
     }
 

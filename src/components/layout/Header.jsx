@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
-import { Search, Bell, Menu, User, LogOut, Settings, HelpCircle, CheckCircle2, Moon, Sun } from 'lucide-react';
+import { Search, Bell, Menu, User, LogOut, Settings, HelpCircle, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const Header = ({ onToggleMobileSidebar }) => {
@@ -9,25 +9,12 @@ export const Header = ({ onToggleMobileSidebar }) => {
   const { setIsCommandPaletteOpen, notifications } = useApp();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    return document.documentElement.classList.contains('dark') || 
-           localStorage.getItem('careerforge_theme') === 'dark';
-  });
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('careerforge_theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('careerforge_theme', 'light');
-    }
-  }, [isDarkMode]);
-
-  const toggleTheme = () => {
-    setIsDarkMode(prev => !prev);
-  };
+    document.documentElement.classList.remove('dark');
+    localStorage.setItem('careerforge_theme', 'light');
+  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -59,17 +46,8 @@ export const Header = ({ onToggleMobileSidebar }) => {
         </button>
       </div>
 
-      {/* Right: Theme Toggle, Notifications & Profile */}
+      {/* Right: Notifications & Profile */}
       <div className="flex items-center gap-2">
-        {/* Theme Toggle */}
-        <button
-          onClick={toggleTheme}
-          title={isDarkMode ? 'Switch to Light mode' : 'Switch to Dark mode'}
-          className="p-2 rounded-lg text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-        >
-          {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
-        </button>
-
         {/* Notifications Button */}
         <div className="relative">
           <button

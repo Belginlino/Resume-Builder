@@ -43,6 +43,65 @@
   background: white;
   box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
   box-sizing: border-box;
+  color: #111827 !important;
+  color-scheme: light;
+}
+
+.a4-page *,
+.a4-page *::before,
+.a4-page *::after {
+  color: inherit;
+}
+
+html.dark .a4-page,
+html.dark .a4-page *,
+html.dark .a4-page *::before,
+html.dark .a4-page *::after {
+  color: #111827 !important;
+  background-color: transparent !important;
+}
+
+html.dark .a4-page [class*="dark:text-"],
+html.dark .a4-page [class*="dark:bg-"],
+html.dark .a4-page [class*="dark:border-"],
+html.dark .a4-page [class*="dark:hover:text-"],
+html.dark .a4-page [class*="dark:hover:bg-"] {
+  color: inherit !important;
+  background-color: transparent !important;
+  border-color: rgba(17, 24, 39, 0.22) !important;
+}
+
+/* Stronger overrides to prevent parent overlays or dark mode from dimming the preview */
+.a4-page {
+  background-color: #ffffff !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+  filter: none !important;
+  opacity: 1 !important;
+  position: relative;
+  z-index: 9999;
+}
+
+.a4-page h1,
+.a4-page h2,
+.a4-page h3,
+.a4-page h4,
+.a4-page h5 {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+}
+
+.a4-page p,
+.a4-page li,
+.a4-page span,
+.a4-page a,
+.a4-page div {
+  color: #111827 !important;
+}
+
+.a4-page a {
+  color: #1d4ed8 !important; /* visible link color for print */
+  text-decoration: underline !important;
 }
 
 @media print {

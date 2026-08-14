@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { clearLocalData } from '../../services/firebase/firestoreService';
-import { User, ShieldCheck, Moon, Sun, Trash2, LogOut, Save, RefreshCw } from 'lucide-react';
+import { User, ShieldCheck, Trash2, LogOut, Save, RefreshCw } from 'lucide-react';
 import { demoTemplates } from '../../data/demoData';
 
 export const SettingsPage = () => {
@@ -12,21 +12,11 @@ export const SettingsPage = () => {
   const [displayName, setDisplayName] = useState(user?.displayName || 'Alex Morgan');
   const [defaultRole, setDefaultRole] = useState('Senior Frontend Engineer');
   const [defaultTemplate, setDefaultTemplate] = useState('template_01');
-  const [currentTheme, setCurrentTheme] = useState(() => {
-    return localStorage.getItem('careerforge_theme') || 'light';
-  });
 
-  const handleThemeChange = (theme) => {
-    setCurrentTheme(theme);
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('careerforge_theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('careerforge_theme', 'light');
-    }
-    addNotification(`Theme switched to ${theme} mode`, 'info');
-  };
+  React.useEffect(() => {
+    document.documentElement.classList.remove('dark');
+    localStorage.setItem('careerforge_theme', 'light');
+  }, []);
 
   const handleSaveSettings = (e) => {
     e.preventDefault();
@@ -81,33 +71,6 @@ export const SettingsPage = () => {
                 className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg text-xs bg-neutral-100 dark:bg-neutral-800/40 text-neutral-500 cursor-not-allowed"
               />
             </div>
-          </div>
-        </div>
-
-        {/* Appearance & Theme */}
-        <div className="p-6 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 space-y-4">
-          <h2 className="text-sm font-bold text-neutral-900 dark:text-white flex items-center gap-2">
-            <Sun className="w-4 h-4 text-neutral-500" />
-            <span>Appearance & Theme</span>
-          </h2>
-
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => handleThemeChange('light')}
-              className={`flex-1 p-3 rounded-lg border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${currentTheme === 'light' ? 'border-neutral-900 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white' : 'border-neutral-200 dark:border-neutral-800 text-neutral-500'}`}
-            >
-              <Sun className="w-4 h-4 text-amber-500" />
-              <span>Light Mode</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleThemeChange('dark')}
-              className={`flex-1 p-3 rounded-lg border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${currentTheme === 'dark' ? 'border-neutral-900 bg-neutral-800 text-white' : 'border-neutral-200 dark:border-neutral-800 text-neutral-500'}`}
-            >
-              <Moon className="w-4 h-4 text-blue-400" />
-              <span>Dark Mode</span>
-            </button>
           </div>
         </div>
 
