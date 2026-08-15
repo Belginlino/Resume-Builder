@@ -36,12 +36,13 @@ export const Header = ({ onToggleMobileSidebar }) => {
         {/* Global Search Button */}
         <button
           onClick={() => setIsCommandPaletteOpen(true)}
-          className="flex items-center gap-3 px-3 py-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/50 text-neutral-500 hover:border-neutral-300 hover:bg-white dark:hover:bg-neutral-800 transition-all text-xs md:text-sm w-48 md:w-72"
+          className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50/80 dark:bg-neutral-800/40 hover:bg-white dark:hover:bg-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700 transition-all text-xs text-neutral-500 w-48 sm:w-64 md:w-80 shrink-0 text-left select-none shadow-2xs"
         >
           <Search className="w-4 h-4 text-neutral-400 shrink-0" />
-          <span className="truncate">Search or type command...</span>
-          <kbd className="hidden sm:inline-block ml-auto px-1.5 py-0.5 rounded text-[10px] font-mono bg-white dark:bg-neutral-700 border border-neutral-200 dark:border-neutral-600 text-neutral-400">
-            Ctrl K
+          <span className="truncate flex-1 text-neutral-400">Search or type command...</span>
+          <kbd className="hidden sm:inline-flex items-center gap-1 ml-auto px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-400 shrink-0 whitespace-nowrap leading-none select-none">
+            <span>Ctrl</span>
+            <span>K</span>
           </kbd>
         </button>
       </div>

@@ -120,8 +120,8 @@ export const CommandPalette = () => {
 
         {/* Footer shortcuts */}
         <div className="px-4 py-2 bg-neutral-50 dark:bg-neutral-900 border-t border-neutral-200 dark:border-neutral-800 flex items-center justify-between text-xs text-neutral-400">
-          <span>Use <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 font-mono">Ctrl + K</kbd> anytime</span>
-          <span>Press <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 font-mono">ESC</kbd> to close</span>
+          <span>Use <kbd className="inline-flex items-center px-1.5 py-0.5 rounded bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 font-mono text-[10px] whitespace-nowrap">Ctrl + K</kbd> anytime</span>
+          <span>Press <kbd className="inline-flex items-center px-1.5 py-0.5 rounded bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 font-mono text-[10px] whitespace-nowrap">ESC</kbd> to close</span>
         </div>
       </div>
     </div>
