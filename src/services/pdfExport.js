@@ -15,7 +15,8 @@ export const exportResumeToPDF = async (elementId, rawFilename = 'Resume.pdf') =
     throw new Error(`Resume preview container #${elementId} was not found.`);
   }
 
-  const captureTarget = targetElement.querySelector?.('.a4-page') || targetElement;
+  const sourcePage = targetElement.querySelector?.('.a4-page') || targetElement;
+  let exportHost = null;
 
   try {
     // Render at a fixed high DPI for crisp output (300 dpi A4)
@@ -24,21 +25,54 @@ export const exportResumeToPDF = async (elementId, rawFilename = 'Resume.pdf') =
     const cssPxPerInch = 96; // standard CSS reference
     const scale = TARGET_DPI / cssPxPerInch;
 
+    exportHost = document.createElement('div');
+    exportHost.style.position = 'fixed';
+    exportHost.style.left = '-10000px';
+    exportHost.style.top = '0';
+    exportHost.style.width = `${A4_MM.width}mm`;
+    exportHost.style.background = '#ffffff';
+    exportHost.style.overflow = 'visible';
+    exportHost.style.pointerEvents = 'none';
+    exportHost.setAttribute('aria-hidden', 'true');
+
+    const captureTarget = sourcePage.cloneNode(true);
+    captureTarget.removeAttribute('id');
+    captureTarget.style.transform = 'none';
+    captureTarget.style.transformOrigin = 'top left';
+    captureTarget.style.margin = '0';
+    captureTarget.style.width = `${A4_MM.width}mm`;
+    captureTarget.style.minHeight = `${A4_MM.height}mm`;
+    captureTarget.style.height = 'auto';
+    captureTarget.style.boxShadow = 'none';
+    captureTarget.style.backgroundColor = '#ffffff';
+    captureTarget.style.overflow = 'visible';
+
+    exportHost.appendChild(captureTarget);
+    document.body.appendChild(exportHost);
+
     const canvas = await html2canvas(captureTarget, {
       scale,
       useCORS: true,
       allowTaint: true,
       logging: false,
       backgroundColor: '#FFFFFF',
+      width: captureTarget.scrollWidth,
+      height: captureTarget.scrollHeight,
+      windowWidth: captureTarget.scrollWidth,
+      windowHeight: captureTarget.scrollHeight,
+      scrollX: 0,
+      scrollY: 0,
       onclone: (clonedDoc) => {
-        const clonedTarget = clonedDoc.querySelector('.a4-page') || clonedDoc.getElementById(elementId) || clonedDoc.getElementById('resume-builder-preview-box') || clonedDoc.getElementById('resume-a4-preview');
+        const clonedTarget = clonedDoc.querySelector('[aria-hidden="true"] .a4-page') || clonedDoc.querySelector('.a4-page') || clonedDoc.getElementById(elementId) || clonedDoc.getElementById('resume-builder-preview-box') || clonedDoc.getElementById('resume-a4-preview');
         if (clonedTarget) {
           clonedTarget.style.transform = 'none';
-          clonedTarget.style.transformOrigin = 'initial';
+          clonedTarget.style.transformOrigin = 'top left';
           clonedTarget.style.margin = '0';
-          // Force the cloned node to A4 CSS dimensions so html2canvas renders consistent physical size
           clonedTarget.style.width = `${A4_MM.width}mm`;
-          clonedTarget.style.height = `${A4_MM.height}mm`;
+          clonedTarget.style.minHeight = `${A4_MM.height}mm`;
+          clonedTarget.style.height = 'auto';
+          clonedTarget.style.boxShadow = 'none';
+          clonedTarget.style.overflow = 'visible';
         }
 
         const parentWrapper = clonedTarget?.parentElement;
@@ -66,13 +100,13 @@ export const exportResumeToPDF = async (elementId, rawFilename = 'Resume.pdf') =
     let heightLeft = imgHeight;
     let position = 0;
 
-    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
     heightLeft -= pdfHeight;
 
     while (heightLeft > 0) {
       position = heightLeft - imgHeight;
       pdf.addPage();
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
       heightLeft -= pdfHeight;
     }
 
@@ -125,6 +159,10 @@ export const exportResumeToPDF = async (elementId, rawFilename = 'Resume.pdf') =
     console.error('PDF generation error:', error);
     window.print();
     return false;
+  } finally {
+    if (exportHost?.parentElement) {
+      exportHost.parentElement.removeChild(exportHost);
+    }
   }
 };
 
@@ -301,6 +339,5 @@ export const exportResumeToJSON = (resume, filename = 'Resume.json') => {
     }, 1500);
   }
 };
-
 
 
