@@ -556,27 +556,143 @@ export const ResumeRenderer = ({ resume, templateId = 'template_01', containerId
   }
 
   // ==========================================
-  // TEMPLATE 03 (MODERN) & TEMPLATE 06 (PROFESSIONAL) DEFAULT
+  // TEMPLATE 03: MODERN (SaaS & Tech, Sky Blue Accents & Badges)
+  // ==========================================
+  if (templateId === 'template_03') {
+    return (
+      <div id={containerId} className="a4-page font-sans text-neutral-900 text-xs leading-relaxed space-y-4 bg-white">
+        {/* Modern Header Banner */}
+        <div className="border-b-2 border-sky-600 pb-3 flex justify-between items-end">
+          <div>
+            <h1 className="text-2xl font-extrabold tracking-tight text-neutral-900">{info.fullName || 'YOUR NAME'}</h1>
+            <p className="text-xs font-semibold text-sky-700 mt-0.5">{info.professionalTitle || 'Software Engineer'}</p>
+          </div>
+          <div className="text-right text-[10.5px] text-neutral-600 space-y-0.5 font-mono">
+            {info.email && <div>{info.email}</div>}
+            {info.phone && <div>{info.phone}</div>}
+            {info.location && <div>{info.location}</div>}
+            {info.linkedin && <div>{info.linkedin}</div>}
+          </div>
+        </div>
+
+        {/* Summary */}
+        {summary && (
+          <div className="bg-sky-50/60 p-3 rounded-lg border-l-3 border-sky-600">
+            <p className="text-neutral-800 text-[11.5px] leading-relaxed">{summary}</p>
+          </div>
+        )}
+
+        {/* Work Experience */}
+        {experience.length > 0 && (
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-sky-950 mb-2 pb-0.5 border-b border-sky-200">
+              Work Experience
+            </h2>
+            <div className="space-y-3">
+              {experience.map((exp, idx) => (
+                <div key={exp.id || idx}>
+                  <div className="flex justify-between items-baseline font-semibold text-neutral-900 text-xs">
+                    <span>{exp.jobTitle} <span className="font-medium text-sky-800">• {exp.company}</span></span>
+                    <span className="text-[10.5px] font-mono text-neutral-500">{exp.startDate} – {exp.currentPosition ? 'Present' : exp.endDate}</span>
+                  </div>
+                  {exp.location && <p className="text-[10.5px] text-neutral-500 italic mb-1">{exp.location}</p>}
+                  {exp.achievements && exp.achievements.filter(Boolean).length > 0 && (
+                    <ul className="list-disc list-inside space-y-0.5 text-[11px] text-neutral-800 pl-1">
+                      {exp.achievements.filter(Boolean).map((ach, aIdx) => (
+                        <li key={aIdx}>{ach}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Skills */}
+        {renderCategorizedSkills() && (
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-sky-950 mb-1 pb-0.5 border-b border-sky-200">
+              Technical Stack & Competencies
+            </h2>
+            {renderCategorizedSkills(true, 'bg-sky-50 text-sky-900 border-sky-200')}
+          </div>
+        )}
+
+        {/* Projects */}
+        {projects.length > 0 && (
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-sky-950 mb-1.5 pb-0.5 border-b border-sky-200">
+              Projects & Engineering Work
+            </h2>
+            <div className="space-y-2">
+              {projects.map((p, idx) => (
+                <div key={idx}>
+                  <div className="flex justify-between items-baseline text-xs">
+                    <span className="font-bold text-neutral-900">{p.name}</span>
+                    {p.technologies && <span className="text-[10.5px] font-mono text-neutral-500">{Array.isArray(p.technologies) ? p.technologies.join(', ') : p.technologies}</span>}
+                  </div>
+                  <p className="text-[11px] text-neutral-700">{p.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Education */}
+        {education.length > 0 && (
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-sky-950 mb-1.5 pb-0.5 border-b border-sky-200">
+              Education
+            </h2>
+            {education.map((edu, idx) => (
+              <div key={idx} className="flex justify-between items-baseline text-xs">
+                <span className="font-bold text-neutral-900">{edu.degree} — <span className="font-normal">{edu.institution}</span></span>
+                <span className="text-[10.5px] font-mono text-neutral-500">{edu.startDate} – {edu.endDate}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Certifications */}
+        {certifications.length > 0 && (
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-sky-950 mb-1 pb-0.5 border-b border-sky-200">
+              Certifications
+            </h2>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-neutral-800">
+              {certifications.map((c, idx) => (
+                <span key={idx}><strong>{c.name}</strong> — {c.organization} ({c.date})</span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ==========================================
+  // TEMPLATE 06: PROFESSIONAL (Corporate Standard)
   // ==========================================
   return (
     <div id={containerId} className="a4-page font-sans text-neutral-900 text-xs leading-relaxed space-y-4 bg-white">
-      {/* Header */}
-      <div className="border-b-2 border-neutral-900 pb-3 flex justify-between items-end">
+      {/* Corporate Header Banner */}
+      <div className="bg-neutral-900 text-white p-4 rounded-lg flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-neutral-900">{info.fullName || 'YOUR NAME'}</h1>
-          <p className="text-sm font-semibold text-neutral-600 mt-0.5">{info.professionalTitle || 'Software Engineer'}</p>
+          <h1 className="text-xl font-bold tracking-wider uppercase text-white">{info.fullName || 'YOUR NAME'}</h1>
+          <p className="text-xs font-medium text-neutral-300 mt-0.5">{info.professionalTitle || 'Software Engineer'}</p>
         </div>
-        <div className="text-right text-[11px] text-neutral-600 space-y-0.5">
+        <div className="text-right text-[10.5px] text-neutral-300 space-y-0.5 font-mono">
           {info.email && <div>{info.email}</div>}
           {info.phone && <div>{info.phone}</div>}
           {info.location && <div>{info.location}</div>}
-          {info.linkedin && <div>{info.linkedin}</div>}
         </div>
       </div>
 
       {/* Summary */}
       {summary && (
-        <div className="bg-neutral-50 p-2.5 rounded border-l-2 border-neutral-900">
+        <div className="bg-neutral-50 p-3 rounded border border-neutral-200">
+          <h2 className="text-[11px] font-bold uppercase tracking-wider text-neutral-900 mb-1">Executive Summary</h2>
           <p className="text-neutral-800 text-[11.5px] leading-relaxed">{summary}</p>
         </div>
       )}
@@ -584,17 +700,17 @@ export const ResumeRenderer = ({ resume, templateId = 'template_01', containerId
       {/* Experience */}
       {experience.length > 0 && (
         <div>
-          <h2 className="text-xs font-bold uppercase tracking-widest text-neutral-900 mb-2 pb-0.5 border-b border-neutral-200">
-            Work Experience
+          <h2 className="text-xs font-bold uppercase tracking-widest text-neutral-900 mb-2 pb-0.5 border-b-2 border-neutral-900">
+            Professional Experience
           </h2>
           <div className="space-y-3">
             {experience.map((exp, idx) => (
               <div key={exp.id || idx}>
-                <div className="flex justify-between items-baseline">
-                  <span className="font-bold text-neutral-900 text-xs">{exp.jobTitle}</span>
+                <div className="flex justify-between items-baseline font-bold text-neutral-900 text-xs">
+                  <span>{exp.jobTitle} <span className="font-normal text-neutral-600">| {exp.company}</span></span>
                   <span className="text-[10.5px] font-mono text-neutral-500">{exp.startDate} – {exp.currentPosition ? 'Present' : exp.endDate}</span>
                 </div>
-                <div className="text-[11px] font-medium text-neutral-700 mb-1">{exp.company} • {exp.location}</div>
+                {exp.location && <div className="text-[10.5px] font-medium text-neutral-500 mb-1">{exp.location}</div>}
                 {exp.achievements && exp.achievements.filter(Boolean).length > 0 && (
                   <ul className="list-disc list-inside space-y-0.5 text-[11px] text-neutral-800 pl-1">
                     {exp.achievements.filter(Boolean).map((ach, aIdx) => (
@@ -611,37 +727,17 @@ export const ResumeRenderer = ({ resume, templateId = 'template_01', containerId
       {/* Skills */}
       {renderCategorizedSkills() && (
         <div>
-          <h2 className="text-xs font-bold uppercase tracking-widest text-neutral-900 mb-1 pb-0.5 border-b border-neutral-200">
-            Technical Stack & Skills
+          <h2 className="text-xs font-bold uppercase tracking-widest text-neutral-900 mb-1 pb-0.5 border-b-2 border-neutral-900">
+            Core Competencies & Technical Skills
           </h2>
           {renderCategorizedSkills(false)}
-        </div>
-      )}
-
-      {/* Projects */}
-      {projects.length > 0 && (
-        <div>
-          <h2 className="text-xs font-bold uppercase tracking-widest text-neutral-900 mb-1.5 pb-0.5 border-b border-neutral-200">
-            Projects
-          </h2>
-          <div className="space-y-2">
-            {projects.map((p, idx) => (
-              <div key={idx}>
-                <div className="flex justify-between items-baseline text-xs">
-                  <span className="font-bold text-neutral-900">{p.name}</span>
-                  {p.technologies && <span className="text-[10.5px] font-mono text-neutral-500">{Array.isArray(p.technologies) ? p.technologies.join(', ') : p.technologies}</span>}
-                </div>
-                <p className="text-[11px] text-neutral-700">{p.description}</p>
-              </div>
-            ))}
-          </div>
         </div>
       )}
 
       {/* Education */}
       {education.length > 0 && (
         <div>
-          <h2 className="text-xs font-bold uppercase tracking-widest text-neutral-900 mb-1.5 pb-0.5 border-b border-neutral-200">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-neutral-900 mb-1.5 pb-0.5 border-b-2 border-neutral-900">
             Education
           </h2>
           {education.map((edu, idx) => (
@@ -656,8 +752,8 @@ export const ResumeRenderer = ({ resume, templateId = 'template_01', containerId
       {/* Certifications */}
       {certifications.length > 0 && (
         <div>
-          <h2 className="text-xs font-bold uppercase tracking-widest text-neutral-900 mb-1 pb-0.5 border-b border-neutral-200">
-            Certifications
+          <h2 className="text-xs font-bold uppercase tracking-widest text-neutral-900 mb-1 pb-0.5 border-b-2 border-neutral-900">
+            Certifications & Training
           </h2>
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-neutral-800">
             {certifications.map((c, idx) => (

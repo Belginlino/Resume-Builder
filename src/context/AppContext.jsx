@@ -149,11 +149,51 @@ export const AppProvider = ({ children }) => {
     return await saveResume(duplicatedData);
   };
 
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('careerforge_theme') || 'light';
+  });
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('careerforge_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
+  const clearNotifications = () => {
+    setNotifications([]);
+  };
+
+  const createNewResume = (templateId = 'template_01') => {
+    const newBlank = {
+      name: 'Untitled_Resume.pdf',
+      targetRole: 'Software Engineer',
+      templateId,
+      personalInfo: { fullName: user?.displayName || 'Alex Morgan', professionalTitle: 'Software Engineer', email: user?.email || 'alex.morgan@example.com', phone: '', location: '', linkedin: '', github: '', portfolio: '' },
+      summary: '',
+      experience: [],
+      education: [],
+      skills: { programming: [], frameworks: [], tools: [], softSkills: [] },
+      projects: [],
+      certifications: [],
+      languages: []
+    };
+    setActiveResume(null);
+    return newBlank;
+  };
+
   return (
     <AppContext.Provider value={{
       resumes,
       activeResume,
       setActiveResume,
+      createNewResume,
       saveResume,
       deleteResume,
       duplicateResume,
@@ -169,7 +209,11 @@ export const AppProvider = ({ children }) => {
       isCommandPaletteOpen,
       setIsCommandPaletteOpen,
       notifications,
-      addNotification
+      addNotification,
+      clearNotifications,
+      theme,
+      setTheme,
+      toggleTheme
     }}>
       {children}
     </AppContext.Provider>

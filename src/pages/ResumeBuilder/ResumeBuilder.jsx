@@ -901,19 +901,28 @@ export const ResumeBuilder = () => {
                             </button>
                           </span>
                         ))}
-                        <input
-                          type="text"
-                          placeholder="+ Type skill and press Enter"
-                          value={newSkillInput.category === category.key ? newSkillInput.tag : ''}
-                          onChange={(e) => setNewSkillInput({ category: category.key, tag: e.target.value })}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              addSkillTag(category.key, newSkillInput.tag);
-                            }
-                          }}
-                          className="text-xs bg-transparent border-none focus:outline-none flex-1 min-w-[120px] text-neutral-900 dark:text-white"
-                        />
+                        <div className="flex items-center gap-1 flex-1 min-w-[160px]">
+                          <input
+                            type="text"
+                            placeholder="+ Type skill"
+                            value={newSkillInput.category === category.key ? newSkillInput.tag : ''}
+                            onChange={(e) => setNewSkillInput({ category: category.key, tag: e.target.value })}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                addSkillTag(category.key, newSkillInput.tag);
+                              }
+                            }}
+                            className="text-xs bg-transparent border-none focus:outline-none flex-1 text-neutral-900 dark:text-white"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => addSkillTag(category.key, newSkillInput.tag)}
+                            className="px-2 py-0.5 rounded text-[11px] font-semibold bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 hover:opacity-90"
+                          >
+                            + Add
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );

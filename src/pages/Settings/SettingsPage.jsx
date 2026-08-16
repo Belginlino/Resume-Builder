@@ -2,25 +2,27 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { clearLocalData } from '../../services/firebase/firestoreService';
-import { User, ShieldCheck, Trash2, LogOut, Save, RefreshCw } from 'lucide-react';
+import { User, ShieldCheck, Trash2, LogOut, Save, RefreshCw, Sun, Moon, Monitor } from 'lucide-react';
 import { demoTemplates } from '../../data/demoData';
 
 export const SettingsPage = () => {
-  const { user, logout } = useAuth();
-  const { addNotification } = useApp();
+  const { user, logout, updateUserProfile } = useAuth();
+  const { addNotification, theme, setTheme } = useApp();
 
   const [displayName, setDisplayName] = useState(user?.displayName || 'Alex Morgan');
-  const [defaultRole, setDefaultRole] = useState('Senior Frontend Engineer');
-  const [defaultTemplate, setDefaultTemplate] = useState('template_01');
+  const [defaultRole, setDefaultRole] = useState(() => localStorage.getItem('careerforge_default_role') || 'Senior Frontend Engineer');
+  const [defaultTemplate, setDefaultTemplate] = useState(() => localStorage.getItem('careerforge_default_template') || 'template_01');
 
-  React.useEffect(() => {
-    document.documentElement.classList.remove('dark');
-    localStorage.setItem('careerforge_theme', 'light');
-  }, []);
-
-  const handleSaveSettings = (e) => {
+  const handleSaveSettings = async (e) => {
     e.preventDefault();
-    addNotification('Settings and preferences saved successfully', 'success');
+    try {
+      await updateUserProfile({ displayName });
+      localStorage.setItem('careerforge_default_role', defaultRole);
+      localStorage.setItem('careerforge_default_template', defaultTemplate);
+      addNotification('Settings and preferences saved successfully', 'success');
+    } catch (err) {
+      addNotification('Failed to save settings', 'error');
+    }
   };
 
   const handleResetData = () => {
@@ -71,6 +73,34 @@ export const SettingsPage = () => {
                 className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg text-xs bg-neutral-100 dark:bg-neutral-800/40 text-neutral-500 cursor-not-allowed"
               />
             </div>
+          </div>
+        </div>
+
+        {/* Theme & Appearance */}
+        <div className="p-6 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 space-y-4">
+          <h2 className="text-sm font-bold text-neutral-900 dark:text-white flex items-center gap-2">
+            <Sun className="w-4 h-4 text-amber-500" />
+            <span>Appearance & Theme</span>
+          </h2>
+
+          <div className="flex gap-4">
+            <button
+              type="button"
+              onClick={() => setTheme('light')}
+              className={`flex-1 p-3.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${theme === 'light' ? 'border-neutral-900 bg-neutral-100 text-neutral-900 dark:border-white dark:bg-neutral-800 dark:text-white ring-1 ring-neutral-900 dark:ring-white' : 'border-neutral-200 dark:border-neutral-800 text-neutral-500 hover:bg-neutral-50 dark:hover:bg-neutral-800'}`}
+            >
+              <Sun className="w-4 h-4 text-amber-500" />
+              <span>Light Mode</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setTheme('dark')}
+              className={`flex-1 p-3.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${theme === 'dark' ? 'border-neutral-900 bg-neutral-100 text-neutral-900 dark:border-white dark:bg-neutral-800 dark:text-white ring-1 ring-neutral-900 dark:ring-white' : 'border-neutral-200 dark:border-neutral-800 text-neutral-500 hover:bg-neutral-50 dark:hover:bg-neutral-800'}`}
+            >
+              <Moon className="w-4 h-4 text-indigo-400" />
+              <span>Dark Mode</span>
+            </button>
           </div>
         </div>
 

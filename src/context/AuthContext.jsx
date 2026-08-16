@@ -85,6 +85,16 @@ export const AuthProvider = ({ children }) => {
     await authService.resetPassword(email);
   };
 
+  const updateUserProfile = async (updates) => {
+    setUser(prev => {
+      const updated = { ...(prev || {}), ...updates };
+      if (updated.isDemo || !isFirebaseConfigured) {
+        localStorage.setItem('careerforge_demo_user', JSON.stringify(updated));
+      }
+      return updated;
+    });
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -94,6 +104,7 @@ export const AuthProvider = ({ children }) => {
       loginWithGoogle,
       logout,
       resetPassword,
+      updateUserProfile,
       isAuthenticated: Boolean(user)
     }}>
       {children}

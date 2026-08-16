@@ -123,6 +123,27 @@ export const ResumeAnalyzer = () => {
     }
   };
 
+  // Re-run scan with job description
+  const handleRescanWithJobDescription = async () => {
+    if (!jobDescriptionInput.trim()) {
+      addNotification('Please enter a job description to calculate tailored keyword scan.', 'info');
+      return;
+    }
+    setAnalyzing(true);
+    setUploadProgress(40);
+    try {
+      const targetResume = demoResumes[0];
+      const analysisResult = await runATSAnalysis(targetResume, jobDescriptionInput);
+      setCurrentAnalysis(analysisResult);
+      setUploadProgress(100);
+      addNotification('Re-scanned ATS compatibility against job description!', 'success');
+    } catch (err) {
+      addNotification('Re-scan failed', 'error');
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
   const analysis = currentAnalysis || activeAnalysis;
 
   return (
@@ -160,7 +181,7 @@ export const ResumeAnalyzer = () => {
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-3">
-            <label className="cursor-pointer px-4 py-2 rounded-lg text-xs font-semibold bg-neutral-900 text-white hover:bg-neutral-800 transition-all shadow-xs inline-flex items-center gap-2">
+            <label className="cursor-pointer px-4 py-2 rounded-lg text-xs font-semibold bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 hover:bg-neutral-800 transition-all shadow-xs inline-flex items-center gap-2">
               <span>Browse Files</span>
               <input
                 type="file"
@@ -198,17 +219,26 @@ export const ResumeAnalyzer = () => {
       </div>
 
       {/* Target Job Description Optional Input */}
-      <div className="p-4 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 space-y-2">
+      <div className="p-4 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 space-y-3">
         <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
           Target Job Description (Optional for Tailored Keyword Scan)
         </label>
         <textarea
-          rows={2}
+          rows={3}
           value={jobDescriptionInput}
           onChange={(e) => setJobDescriptionInput(e.target.value)}
           placeholder="Paste targeted job description text here to compare required keywords against your resume..."
           className="w-full p-2.5 border border-neutral-200 dark:border-neutral-800 rounded-lg text-xs bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white focus:outline-none"
         />
+        <button
+          type="button"
+          onClick={handleRescanWithJobDescription}
+          disabled={analyzing}
+          className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 hover:bg-neutral-800 flex items-center gap-1.5 shadow-xs"
+        >
+          <Scan className="w-3.5 h-3.5" />
+          <span>Run Tailored Keyword Scan</span>
+        </button>
       </div>
 
       {/* Analysis Results View */}

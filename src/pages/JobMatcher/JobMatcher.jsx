@@ -57,9 +57,11 @@ export const JobMatcher = () => {
     addNotification('Loaded sample job posting', 'info');
   };
 
-  // Add missing skills to active resume
+  const jobData = matchResult || activeJob;
+
+  // Add missing skills to active resume and recalculate match
   const handleAddMissingSkills = async (skillsToAdd) => {
-    const targetResume = resumes.find(r => r.id === selectedResumeId) || activeResume;
+    const targetResume = resumes.find(r => r.id === selectedResumeId) || activeResume || demoResumes[0];
     if (!targetResume) return;
 
     const currentSkills = targetResume.skills || {};
@@ -76,11 +78,19 @@ export const JobMatcher = () => {
     }
 
     try {
-      await saveResume({
+      const updatedResume = {
         ...targetResume,
         skills: updatedSkills
-      });
-      addNotification(`Added ${skillsToAdd.length} skills to resume!`, 'success');
+      };
+      await saveResume(updatedResume);
+
+      // Re-run job match calculation to update UI state in real-time
+      if (jobDescriptionText.trim()) {
+        const newResult = await runJobMatch(updatedResume, jobDescriptionText, companyName || 'Target Company');
+        setMatchResult(newResult);
+      }
+
+      addNotification(`Added ${skillsToAdd.length} skills to resume and updated match score!`, 'success');
     } catch (e) {
       addNotification('Failed to update skills on resume', 'error');
     }
@@ -103,8 +113,6 @@ export const JobMatcher = () => {
       setGeneratingTailored(false);
     }
   };
-
-  const jobData = matchResult || activeJob;
 
   return (
     <div className="space-y-8 pb-16">

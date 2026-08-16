@@ -22,8 +22,13 @@ import { exportResumeToPDF } from '../../services/pdfExport';
 
 export const Dashboard = () => {
   const { user } = useAuth();
-  const { resumes, analyses, jobs, setActiveResume, duplicateResume, deleteResume } = useApp();
+  const { resumes, analyses, jobs, setActiveResume, duplicateResume, deleteResume, createNewResume } = useApp();
   const navigate = useNavigate();
+
+  const handleCreateNewResume = () => {
+    createNewResume();
+    navigate('/resume-builder');
+  };
 
   const userName = user?.displayName || user?.email?.split('@')[0] || 'Alex';
   const latestAnalysis = analyses[0] || null;
@@ -44,13 +49,13 @@ export const Dashboard = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => navigate('/analyzer')}
-            className="px-3.5 py-2 rounded-lg text-xs font-semibold bg-neutral-900 text-white hover:bg-neutral-800 transition-all shadow-xs flex items-center gap-1.5"
+            className="px-3.5 py-2 rounded-lg text-xs font-semibold bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 hover:bg-neutral-800 transition-all shadow-xs flex items-center gap-1.5"
           >
             <Scan className="w-3.5 h-3.5" />
             <span>Scan Resume</span>
           </button>
           <button
-            onClick={() => navigate('/resume-builder')}
+            onClick={handleCreateNewResume}
             className="px-3.5 py-2 rounded-lg text-xs font-semibold bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-white hover:bg-neutral-50 transition-all shadow-xs flex items-center gap-1.5"
           >
             <PlusCircle className="w-3.5 h-3.5 text-blue-600" />
@@ -244,7 +249,7 @@ export const Dashboard = () => {
             <p className="text-xs text-neutral-500">Manage and update saved resume versions.</p>
           </div>
           <button
-            onClick={() => navigate('/resume-builder')}
+            onClick={handleCreateNewResume}
             className="text-xs font-semibold text-neutral-900 dark:text-white hover:underline flex items-center gap-1"
           >
             <span>+ Create New</span>
