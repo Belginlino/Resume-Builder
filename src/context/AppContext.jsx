@@ -8,8 +8,51 @@ const AppContext = createContext(null);
 
 export const AppProvider = ({ children }) => {
   const { user } = useAuth();
-  const [resumes, setResumes] = useState([]);
-  const [activeResume, setActiveResume] = useState(null);
+  
+  // Hydrate resumes immediately from local storage to prevent reload flicker or resets
+  const [resumes, setResumes] = useState(() => {
+    try {
+      const raw = localStorage.getItem('careerforge_db_resumes');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return [];
+  });
+
+  // Hydrate activeResume immediately
+  const [activeResume, setActiveResumeState] = useState(() => {
+    try {
+      const draft = localStorage.getItem('careerforge_current_draft');
+      if (draft) {
+        const parsedDraft = JSON.parse(draft);
+        if (parsedDraft && parsedDraft.personalInfo) return parsedDraft;
+      }
+      const activeId = localStorage.getItem('careerforge_active_resume_id');
+      const raw = localStorage.getItem('careerforge_db_resumes');
+      if (raw) {
+        const list = JSON.parse(raw);
+        if (activeId) {
+          const found = list.find(r => r.id === activeId);
+          if (found) return found;
+        }
+        if (list.length > 0) return list[0];
+      }
+    } catch (e) {}
+    return null;
+  });
+
+  const setActiveResume = useCallback((res) => {
+    setActiveResumeState(res);
+    if (res) {
+      try {
+        localStorage.setItem('careerforge_active_resume_id', res.id || '');
+        localStorage.setItem('careerforge_current_draft', JSON.stringify(res));
+      } catch (e) {}
+    }
+  }, []);
+
   const [analyses, setAnalyses] = useState([]);
   const [activeAnalysis, setActiveAnalysis] = useState(null);
   const [jobs, setJobs] = useState([]);
@@ -28,9 +71,15 @@ export const AppProvider = ({ children }) => {
       const userAnalyses = await firestoreService.getAnalyses(user.uid);
       const userJobs = await firestoreService.getJobs(user.uid);
 
-      setResumes(userResumes);
-      if (userResumes.length > 0 && !activeResume) {
-        setActiveResume(userResumes[0]);
+      if (userResumes && userResumes.length > 0) {
+        setResumes(userResumes);
+        setActiveResumeState(prev => {
+          if (prev) {
+            const updatedMatch = userResumes.find(r => r.id === prev.id);
+            return updatedMatch || prev;
+          }
+          return userResumes[0];
+        });
       }
 
       setAnalyses(userAnalyses);
@@ -62,11 +111,38 @@ export const AppProvider = ({ children }) => {
     }, 4000);
   };
 
-  // Save/Update Resume
-  const saveResume = async (resumeData) => {
-    if (!user) return null;
+  // Save/Update Resume (supports silent auto-save)
+  const saveResume = async (resumeData, silent = false) => {
+    const fallbackId = resumeData.id || 'resume_' + Date.now();
+    const updatedResume = {
+      ...resumeData,
+      id: fallbackId,
+      updatedAt: new Date().toISOString()
+    };
+
+    // Keep draft cached in storage immediately
     try {
-      const saved = await firestoreService.saveResume(user.uid, resumeData);
+      localStorage.setItem('careerforge_current_draft', JSON.stringify(updatedResume));
+      localStorage.setItem('careerforge_active_resume_id', fallbackId);
+    } catch (e) {}
+
+    setActiveResumeState(updatedResume);
+
+    if (!user) {
+      setResumes(prev => {
+        const idx = prev.findIndex(r => r.id === fallbackId);
+        if (idx !== -1) {
+          const copy = [...prev];
+          copy[idx] = updatedResume;
+          return copy;
+        }
+        return [updatedResume, ...prev];
+      });
+      return updatedResume;
+    }
+
+    try {
+      const saved = await firestoreService.saveResume(user.uid, updatedResume);
       setResumes(prev => {
         const idx = prev.findIndex(r => r.id === saved.id);
         if (idx !== -1) {
@@ -76,12 +152,17 @@ export const AppProvider = ({ children }) => {
         }
         return [saved, ...prev];
       });
-      setActiveResume(saved);
-      addNotification('Resume saved successfully', 'success');
+      setActiveResumeState(saved);
+      if (!silent) {
+        addNotification('Resume saved successfully', 'success');
+      }
       return saved;
     } catch (err) {
-      addNotification('Failed to save resume', 'error');
-      throw err;
+      console.warn('saveResume cloud fallback:', err);
+      if (!silent) {
+        addNotification('Saved locally (offline mode)', 'info');
+      }
+      return updatedResume;
     }
   };
 

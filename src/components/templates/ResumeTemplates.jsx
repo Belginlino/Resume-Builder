@@ -248,6 +248,8 @@ export const ResumeRenderer = ({ resume, templateId = 'template_01', containerId
             {info.phone && <div>{info.phone}</div>}
             {info.location && <div>{info.location}</div>}
             {info.linkedin && <div>{info.linkedin}</div>}
+            {info.github && <div>{info.github}</div>}
+            {info.portfolio && <div>{info.portfolio}</div>}
           </div>
         </div>
 
@@ -344,8 +346,8 @@ export const ResumeRenderer = ({ resume, templateId = 'template_01', containerId
             <p className="text-xs font-semibold text-emerald-800 mt-0.5">{info.professionalTitle || 'Software Engineer'}</p>
           </div>
           <div className="text-right text-[10.5px] font-mono text-neutral-600 space-y-0.5">
-            <div>{info.email} {info.phone && `| ${info.phone}`}</div>
-            <div>{info.location} {info.github && `| ${info.github}`}</div>
+            <div>{[info.email, info.phone, info.location].filter(Boolean).join(' | ')}</div>
+            <div>{[info.linkedin, info.github, info.portfolio].filter(Boolean).join(' | ')}</div>
           </div>
         </div>
 
@@ -464,6 +466,7 @@ export const ResumeRenderer = ({ resume, templateId = 'template_01', containerId
             {info.location && <span>• {info.location}</span>}
             {info.linkedin && <span>• {info.linkedin}</span>}
             {info.github && <span>• {info.github}</span>}
+            {info.portfolio && <span>• {info.portfolio}</span>}
           </div>
         </div>
 
@@ -572,6 +575,8 @@ export const ResumeRenderer = ({ resume, templateId = 'template_01', containerId
             {info.phone && <div>{info.phone}</div>}
             {info.location && <div>{info.location}</div>}
             {info.linkedin && <div>{info.linkedin}</div>}
+            {info.github && <div>{info.github}</div>}
+            {info.portfolio && <div>{info.portfolio}</div>}
           </div>
         </div>
 
@@ -686,6 +691,9 @@ export const ResumeRenderer = ({ resume, templateId = 'template_01', containerId
           {info.email && <div>{info.email}</div>}
           {info.phone && <div>{info.phone}</div>}
           {info.location && <div>{info.location}</div>}
+          {info.linkedin && <div>{info.linkedin}</div>}
+          {info.github && <div>{info.github}</div>}
+          {info.portfolio && <div>{info.portfolio}</div>}
         </div>
       </div>
 

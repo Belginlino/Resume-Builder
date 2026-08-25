@@ -31,7 +31,11 @@ export const Login = () => {
       await loginWithGoogle();
       navigate('/dashboard');
     } catch (err) {
-      setError('Google Sign-In failed.');
+      console.error('Google Sign-In Error:', err);
+      const specificMsg = err?.code 
+        ? `Google Sign-In failed: ${err.code.replace('auth/', '')}` 
+        : (err?.message || 'Google Sign-In failed.');
+      setError(specificMsg);
     }
   };
 

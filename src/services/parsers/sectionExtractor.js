@@ -7,11 +7,22 @@ export const parseRawResumeText = (rawText) => {
   const phoneRegex = /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/;
   const linkedinRegex = /(linkedin\.com\/in\/[a-zA-Z0-9_-]+)/i;
   const githubRegex = /(github\.com\/[a-zA-Z0-9_-]+)/i;
+  const portfolioRegex = /(?:https?:\/\/)?((?:[a-zA-Z0-9-]+\.)+(?:dev|me|io|app|site|tech|portfolio|online|xyz|net|org|com)(?:\/[^\s]*)?)/i;
 
   const emailMatch = text.match(emailRegex);
   const phoneMatch = text.match(phoneRegex);
   const linkedinMatch = text.match(linkedinRegex);
   const githubMatch = text.match(githubRegex);
+  
+  // Look for portfolio excluding email/linkedin/github
+  const urls = text.match(/(?:https?:\/\/|www\.)[^\s]+/gi) || [];
+  let portfolioMatch = null;
+  for (const url of urls) {
+    if (!url.includes('linkedin.com') && !url.includes('github.com') && !url.includes('@')) {
+      portfolioMatch = url.replace(/^https?:\/\//i, '').replace(/^www\./i, '');
+      break;
+    }
+  }
 
   // Attempt to extract name from top 3 lines
   let extractedName = 'Alex Morgan';
@@ -157,6 +168,7 @@ export const parseRawResumeText = (rawText) => {
       phone: phoneMatch ? phoneMatch[0] : '+1 (555) 234-5678',
       linkedin: linkedinMatch ? linkedinMatch[0] : 'linkedin.com/in/candidate',
       github: githubMatch ? githubMatch[0] : 'github.com/candidate',
+      portfolio: portfolioMatch || '',
       location: 'San Francisco, CA'
     },
     summary: summary || 'Experienced software professional with demonstrated impact in architecting responsive applications, improving systems performance, and collaborating in agile teams.',

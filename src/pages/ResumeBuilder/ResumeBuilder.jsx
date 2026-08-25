@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { aiService } from '../../services/aiService';
@@ -33,13 +33,15 @@ import {
   Briefcase,
   GraduationCap,
   Award,
-  Globe
+  Globe,
+  Cloud,
+  Loader2
 } from 'lucide-react';
 import { demoTemplates, demoResumes } from '../../data/demoData';
 
 export const ResumeBuilder = () => {
   const { id } = useParams();
-  const { resumes, activeResume, saveResume, setActiveResume, addNotification } = useApp();
+  const { resumes, activeResume, saveResume, setActiveResume, addNotification, createNewResume } = useApp();
   const navigate = useNavigate();
 
   // Mobile View Tab state ('editor' | 'preview')
@@ -57,10 +59,24 @@ export const ResumeBuilder = () => {
     languages: false
   });
 
-  // Current Resume Form State
+  // Current Resume Form State (hydrates from matching resume, active draft, or demo)
   const [resumeData, setResumeData] = useState(() => {
-    const found = resumes.find(r => r.id === id) || (id ? null : activeResume) || demoResumes[0];
-    return found ? JSON.parse(JSON.stringify(found)) : {
+    if (id) {
+      const found = resumes.find(r => r.id === id);
+      if (found) return JSON.parse(JSON.stringify(found));
+    }
+    try {
+      const draft = localStorage.getItem('careerforge_current_draft');
+      if (draft) {
+        const parsedDraft = JSON.parse(draft);
+        if (parsedDraft && parsedDraft.personalInfo && (!id || parsedDraft.id === id)) {
+          return parsedDraft;
+        }
+      }
+    } catch (e) {}
+
+    const fallback = (id ? null : activeResume) || resumes[0] || demoResumes[0];
+    return fallback ? JSON.parse(JSON.stringify(fallback)) : {
       name: 'Untitled_Resume.pdf',
       targetRole: 'Senior Software Engineer',
       templateId: 'template_01',
@@ -75,6 +91,11 @@ export const ResumeBuilder = () => {
     };
   });
 
+  const resumeDataRef = useRef(resumeData);
+  resumeDataRef.current = resumeData;
+  const isMountedRef = useRef(false);
+  const autoSaveTimerRef = useRef(null);
+
   // React to URL parameter changes
   useEffect(() => {
     if (id) {
@@ -88,9 +109,75 @@ export const ResumeBuilder = () => {
 
   const [saving, setSaving] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
-  const [lastSavedTime, setLastSavedTime] = useState('Draft ready');
+  const [lastSavedTime, setLastSavedTime] = useState('Saved to Cloud');
   const [aiLoading, setAiLoading] = useState(false);
   const [aiFeedbackMessage, setAiFeedbackMessage] = useState('');
+
+  // Continuous real-time debounced auto-save to Cloud (Firebase) + Local Storage
+  useEffect(() => {
+    if (!isMountedRef.current) {
+      isMountedRef.current = true;
+      return;
+    }
+
+    // 1. Immediately cache in localStorage so instant reload/refresh loses 0 details
+    try {
+      localStorage.setItem('careerforge_current_draft', JSON.stringify(resumeData));
+      if (resumeData.id) {
+        localStorage.setItem('careerforge_active_resume_id', resumeData.id);
+      }
+    } catch (e) {}
+
+    // 2. Keep activeResume in sync in AppContext for other pages
+    setActiveResume(resumeData);
+
+    setLastSavedTime('Saving...');
+
+    // 3. Debounce save to Cloud / Firebase Firestore
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+
+    autoSaveTimerRef.current = setTimeout(async () => {
+      try {
+        await saveResume(resumeData, true);
+        setLastSavedTime(`Saved at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`);
+      } catch (err) {
+        setLastSavedTime(`Saved locally at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
+      }
+    }, 700);
+
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, [resumeData, saveResume, setActiveResume]);
+
+  // Flush save on page navigation / unmount
+  useEffect(() => {
+    return () => {
+      if (resumeDataRef.current) {
+        try {
+          localStorage.setItem('careerforge_current_draft', JSON.stringify(resumeDataRef.current));
+          saveResume(resumeDataRef.current, true).catch(() => {});
+        } catch (e) {}
+      }
+    };
+  }, [saveResume]);
+
+  // Flush draft on window refresh/close
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (resumeDataRef.current) {
+        try {
+          localStorage.setItem('careerforge_current_draft', JSON.stringify(resumeDataRef.current));
+        } catch (e) {}
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
   
   // Skill tag input states
   const [newSkillInput, setNewSkillInput] = useState({ category: 'programming', tag: '' });
@@ -365,16 +452,20 @@ export const ResumeBuilder = () => {
   };
 
   // ----------------------------------------------------
-  // Trigger Save
+  // Trigger Save (manual save button)
   // ----------------------------------------------------
   const handleSave = async () => {
     setSaving(true);
+    setLastSavedTime('Saving...');
     try {
-      const saved = await saveResume(resumeData);
-      setResumeData(saved);
-      setLastSavedTime(`Saved at ${new Date().toLocaleTimeString()}`);
+      const saved = await saveResume(resumeData, false);
+      if (saved) {
+        setResumeData(saved);
+      }
+      setLastSavedTime(`Saved at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`);
     } catch (err) {
       console.error('Save failed:', err);
+      setLastSavedTime(`Saved locally at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
     } finally {
       setSaving(false);
     }
@@ -458,7 +549,14 @@ export const ResumeBuilder = () => {
               className="font-bold text-sm text-neutral-900 dark:text-white bg-transparent border-b border-transparent hover:border-neutral-300 focus:border-neutral-900 focus:outline-none"
             />
             <div className="flex items-center gap-2 text-xs text-neutral-400 mt-0.5 font-mono">
-              <span>{lastSavedTime}</span>
+              <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400 font-medium">
+                {lastSavedTime === 'Saving...' ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500" />
+                ) : (
+                  <Cloud className="w-3.5 h-3.5 text-emerald-500" />
+                )}
+                <span>{lastSavedTime}</span>
+              </span>
               <span>•</span>
               <span className="text-emerald-600 font-semibold">{readinessScore}% ATS Ready</span>
             </div>
@@ -633,7 +731,7 @@ export const ResumeBuilder = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] font-semibold text-neutral-600 dark:text-neutral-400 mb-1">Location</label>
                     <input
@@ -654,13 +752,26 @@ export const ResumeBuilder = () => {
                       className="w-full px-3 py-1.5 border border-neutral-300 dark:border-neutral-800 rounded-lg text-xs bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white"
                     />
                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[11px] font-semibold text-neutral-600 dark:text-neutral-400 mb-1">GitHub / Portfolio</label>
+                    <label className="block text-[11px] font-semibold text-neutral-600 dark:text-neutral-400 mb-1">GitHub Profile</label>
                     <input
                       type="text"
                       value={resumeData.personalInfo?.github || ''}
                       onChange={(e) => updatePersonalInfo('github', e.target.value)}
                       placeholder="github.com/alexmorgan"
+                      className="w-full px-3 py-1.5 border border-neutral-300 dark:border-neutral-800 rounded-lg text-xs bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-neutral-600 dark:text-neutral-400 mb-1">Portfolio / Website</label>
+                    <input
+                      type="text"
+                      value={resumeData.personalInfo?.portfolio || ''}
+                      onChange={(e) => updatePersonalInfo('portfolio', e.target.value)}
+                      placeholder="alexmorgan.dev"
                       className="w-full px-3 py-1.5 border border-neutral-300 dark:border-neutral-800 rounded-lg text-xs bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white"
                     />
                   </div>

@@ -61,6 +61,12 @@ const setLocalCollection = (colName, data) => {
   }
 };
 
+// Helper to clean undefined values which Firestore rejects
+const sanitizeForFirestore = (obj) => {
+  if (obj === undefined) return null;
+  return JSON.parse(JSON.stringify(obj, (key, value) => (value === undefined ? null : value)));
+};
+
 export const firestoreService = {
   // Resumes
   getResumes: async (userId) => {
@@ -75,6 +81,15 @@ export const firestoreService = {
           const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           setLocalCollection('resumes', list);
           return list;
+        } else if (snapshot && snapshot.empty) {
+          // If Firestore is empty for this user, seed from local storage if available
+          const localList = getLocalCollection('resumes');
+          if (localList && localList.length > 0) {
+            localList.forEach(item => {
+              firestoreService.saveResume(userId, item).catch(() => {});
+            });
+            return localList;
+          }
         }
       } catch (err) {
         console.warn("Firestore getResumes fallback to local:", err.message);
@@ -101,27 +116,25 @@ export const firestoreService = {
 
   saveResume: async (userId, resumeData) => {
     const now = new Date().toISOString();
+    let savedId = resumeData.id;
+    if (!savedId) {
+      savedId = 'resume_' + Date.now();
+    }
+
+    const cleanData = sanitizeForFirestore(resumeData);
     const payload = {
-      ...resumeData,
+      ...cleanData,
+      id: savedId,
       updatedAt: now
     };
 
-    let savedId = resumeData.id;
-
     if (shouldCallRemoteFirestore(userId)) {
       try {
-        if (savedId) {
-          const ref = doc(db, `users/${userId}/resumes/${savedId}`);
-          await withTimeout(updateDoc(ref, { ...payload, updatedAt: serverTimestamp() }));
-        } else {
-          const colRef = collection(db, `users/${userId}/resumes`);
-          const docRef = await withTimeout(addDoc(colRef, { 
-            ...payload, 
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp() 
-          }));
-          savedId = docRef.id;
-        }
+        const ref = doc(db, `users/${userId}/resumes/${savedId}`);
+        await withTimeout(setDoc(ref, { 
+          ...payload, 
+          updatedAt: serverTimestamp() 
+        }, { merge: true }));
       } catch (err) {
         console.warn("Firestore saveResume fallback to local:", err.message);
       }
@@ -129,10 +142,6 @@ export const firestoreService = {
 
     // Always ensure it is saved locally
     const list = getLocalCollection('resumes');
-    if (!savedId) {
-      savedId = 'resume_' + Date.now();
-    }
-
     const savedResume = { 
       ...payload, 
       id: savedId, 
