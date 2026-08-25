@@ -103,16 +103,16 @@ export const AppProvider = ({ children }) => {
   }, [loadUserData]);
 
   // Notifications Toast helper
-  const addNotification = (message, type = 'success') => {
+  const addNotification = useCallback((message, type = 'success') => {
     const id = Date.now();
     setNotifications(prev => [...prev, { id, message, type }]);
     setTimeout(() => {
       setNotifications(prev => prev.filter(n => n.id !== id));
     }, 4000);
-  };
+  }, []);
 
   // Save/Update Resume (supports silent auto-save)
-  const saveResume = async (resumeData, silent = false) => {
+  const saveResume = useCallback(async (resumeData, silent = false) => {
     const fallbackId = resumeData.id || 'resume_' + Date.now();
     const updatedResume = {
       ...resumeData,
@@ -125,8 +125,6 @@ export const AppProvider = ({ children }) => {
       localStorage.setItem('careerforge_current_draft', JSON.stringify(updatedResume));
       localStorage.setItem('careerforge_active_resume_id', fallbackId);
     } catch (e) {}
-
-    setActiveResumeState(updatedResume);
 
     if (!user) {
       setResumes(prev => {
@@ -152,7 +150,6 @@ export const AppProvider = ({ children }) => {
         }
         return [saved, ...prev];
       });
-      setActiveResumeState(saved);
       if (!silent) {
         addNotification('Resume saved successfully', 'success');
       }
@@ -164,25 +161,23 @@ export const AppProvider = ({ children }) => {
       }
       return updatedResume;
     }
-  };
+  }, [user, addNotification]);
 
   // Delete Resume
-  const deleteResume = async (resumeId) => {
+  const deleteResume = useCallback(async (resumeId) => {
     if (!user) return;
     try {
       await firestoreService.deleteResume(user.uid, resumeId);
       setResumes(prev => prev.filter(r => r.id !== resumeId));
-      if (activeResume?.id === resumeId) {
-        setActiveResume(resumes.find(r => r.id !== resumeId) || null);
-      }
+      setActiveResumeState(prev => (prev?.id === resumeId ? null : prev));
       addNotification('Resume deleted', 'info');
     } catch (err) {
       addNotification('Could not delete resume', 'error');
     }
-  };
+  }, [user, addNotification]);
 
   // Run ATS Analysis on a resume
-  const runATSAnalysis = async (resumeObj, jobDescriptionText = '') => {
+  const runATSAnalysis = useCallback(async (resumeObj, jobDescriptionText = '') => {
     if (!user) return null;
     try {
       const result = analyzeResumeATS(resumeObj, jobDescriptionText);
@@ -201,10 +196,10 @@ export const AppProvider = ({ children }) => {
       addNotification('ATS Analysis failed. Please try again.', 'error');
       throw err;
     }
-  };
+  }, [user, addNotification]);
 
   // Run Job Matching
-  const runJobMatch = async (resumeObj, jobDescriptionText, companyName = 'Target Company') => {
+  const runJobMatch = useCallback(async (resumeObj, jobDescriptionText, companyName = 'Target Company') => {
     if (!user) return null;
     try {
       const result = calculateJobMatch(resumeObj, jobDescriptionText, companyName);
@@ -217,10 +212,10 @@ export const AppProvider = ({ children }) => {
       addNotification('Job match processing error', 'error');
       throw err;
     }
-  };
+  }, [user, addNotification]);
 
   // Duplicate Resume
-  const duplicateResume = async (resumeToDup) => {
+  const duplicateResume = useCallback(async (resumeToDup) => {
     const duplicatedData = {
       ...resumeToDup,
       id: undefined,
@@ -228,7 +223,7 @@ export const AppProvider = ({ children }) => {
       updatedAt: new Date().toISOString()
     };
     return await saveResume(duplicatedData);
-  };
+  }, [saveResume]);
 
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('careerforge_theme') || 'light';
@@ -243,15 +238,15 @@ export const AppProvider = ({ children }) => {
     localStorage.setItem('careerforge_theme', theme);
   }, [theme]);
 
-  const toggleTheme = () => {
+  const toggleTheme = useCallback(() => {
     setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
-  };
+  }, []);
 
-  const clearNotifications = () => {
+  const clearNotifications = useCallback(() => {
     setNotifications([]);
-  };
+  }, []);
 
-  const createNewResume = (templateId = 'template_01') => {
+  const createNewResume = useCallback((templateId = 'template_01') => {
     const newBlank = {
       name: 'Untitled_Resume.pdf',
       targetRole: 'Software Engineer',
@@ -265,9 +260,9 @@ export const AppProvider = ({ children }) => {
       certifications: [],
       languages: []
     };
-    setActiveResume(null);
+    setActiveResumeState(null);
     return newBlank;
-  };
+  }, [user]);
 
   return (
     <AppContext.Provider value={{

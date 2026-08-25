@@ -96,16 +96,19 @@ export const ResumeBuilder = () => {
   const isMountedRef = useRef(false);
   const autoSaveTimerRef = useRef(null);
 
-  // React to URL parameter changes
+  // Track the ID of the resume that has been loaded into state
+  const loadedIdRef = useRef(id || null);
+
+  // React ONLY when the route parameter `id` changes
   useEffect(() => {
-    if (id) {
+    if (id && id !== loadedIdRef.current) {
+      loadedIdRef.current = id;
       const match = resumes.find(r => r.id === id);
       if (match) {
         setResumeData(JSON.parse(JSON.stringify(match)));
-        setActiveResume(match);
       }
     }
-  }, [id, resumes, setActiveResume]);
+  }, [id, resumes]);
 
   const [saving, setSaving] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
@@ -115,12 +118,7 @@ export const ResumeBuilder = () => {
 
   // Continuous real-time debounced auto-save to Cloud (Firebase) + Local Storage
   useEffect(() => {
-    if (!isMountedRef.current) {
-      isMountedRef.current = true;
-      return;
-    }
-
-    // 1. Immediately cache in localStorage so instant reload/refresh loses 0 details
+    // 1. Immediately cache in localStorage synchronously (< 0.1ms) so instant reload/refresh loses 0 details
     try {
       localStorage.setItem('careerforge_current_draft', JSON.stringify(resumeData));
       if (resumeData.id) {
@@ -128,35 +126,40 @@ export const ResumeBuilder = () => {
       }
     } catch (e) {}
 
-    // 2. Keep activeResume in sync in AppContext for other pages
-    setActiveResume(resumeData);
+    // Skip cloud network request on initial mount
+    if (!isMountedRef.current) {
+      isMountedRef.current = true;
+      return;
+    }
 
-    setLastSavedTime('Saving...');
-
-    // 3. Debounce save to Cloud / Firebase Firestore
+    // 2. Debounce save to Cloud / Firebase Firestore
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);
     }
 
     autoSaveTimerRef.current = setTimeout(async () => {
+      setLastSavedTime('Saving...');
       try {
         await saveResume(resumeData, true);
         setLastSavedTime(`Saved at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`);
       } catch (err) {
         setLastSavedTime(`Saved locally at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
       }
-    }, 700);
+    }, 1200);
 
     return () => {
       if (autoSaveTimerRef.current) {
         clearTimeout(autoSaveTimerRef.current);
       }
     };
-  }, [resumeData, saveResume, setActiveResume]);
+  }, [resumeData, saveResume]);
 
   // Flush save on page navigation / unmount
   useEffect(() => {
     return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
       if (resumeDataRef.current) {
         try {
           localStorage.setItem('careerforge_current_draft', JSON.stringify(resumeDataRef.current));
@@ -480,18 +483,31 @@ export const ResumeBuilder = () => {
     addNotification('Loaded full ATS sample resume template', 'info');
   };
 
-  // Trigger AI Text Polish
-  const handleAiAction = async (text, action, onResult) => {
+  // Trigger AI Text Polish or Generation
+  const handleAiAction = async (text, action, onResult, context = {}) => {
     setAiLoading(true);
     setAiFeedbackMessage('');
     try {
-      const res = await aiService.improveText({ text, action, jobContext: resumeData.targetRole });
-      if (res.userActionNeeded) {
-        setAiFeedbackMessage(res.promptUserMessage);
-      } else {
+      const res = await aiService.improveText({ 
+        text, 
+        action, 
+        jobContext: resumeData.targetRole || context.jobTitle || 'Software Engineer',
+        jobTitle: context.jobTitle || resumeData.targetRole || resumeData.personalInfo?.professionalTitle,
+        company: context.company || '',
+        skills: resumeData.skills
+      });
+
+      if (res.improvedText) {
         onResult(res.improvedText);
         if (res.tip) setAiFeedbackMessage(res.tip);
+        addNotification(res.tip || 'AI generated / improved text successfully', 'success');
+      } else if (res.suggestion) {
+        setAiFeedbackMessage(res.suggestion);
+        addNotification(res.suggestion, 'info');
       }
+    } catch (err) {
+      console.error('AI action failed:', err);
+      addNotification('AI generation failed. Please try again.', 'error');
     } finally {
       setAiLoading(false);
     }
@@ -924,6 +940,32 @@ export const ResumeBuilder = () => {
                       </div>
                     </div>
 
+                    {/* Role Description / Overview */}
+                    <div>
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="block text-[11px] font-semibold text-neutral-600 dark:text-neutral-400">
+                          Role Overview / Description <span className="font-normal text-neutral-400">(Optional)</span>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => handleAiAction(exp.description, 'add_impact', (res) => updateExperience(idx, 'description', res), { jobTitle: exp.jobTitle, company: exp.company })}
+                          disabled={aiLoading}
+                          className="text-[11px] text-amber-600 hover:text-amber-700 flex items-center gap-1 font-medium disabled:opacity-50"
+                          title="Generate or Polish Role Overview with AI"
+                        >
+                          <Sparkles className="w-3 h-3" />
+                          <span>{exp.description ? 'Polish with AI' : 'Generate with AI'}</span>
+                        </button>
+                      </div>
+                      <textarea
+                        rows={2}
+                        value={exp.description || ''}
+                        onChange={(e) => updateExperience(idx, 'description', e.target.value)}
+                        placeholder="e.g. Architecting scalable web applications and leading a team across front-end infrastructure..."
+                        className="w-full p-2 border border-neutral-300 dark:border-neutral-800 rounded-lg text-xs bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white focus:outline-none"
+                      />
+                    </div>
+
                     {/* Achievements Bullets */}
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
@@ -945,9 +987,10 @@ export const ResumeBuilder = () => {
                             className="w-full px-3 py-1.5 border border-neutral-300 dark:border-neutral-800 rounded-lg text-xs bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white"
                           />
                           <button
-                            onClick={() => handleAiAction(bullet, 'add_impact', (res) => updateAchievementBullet(idx, bIdx, res))}
-                            className="p-1.5 rounded bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 text-amber-600 shrink-0"
-                            title="Add Impact / Metric with AI"
+                            onClick={() => handleAiAction(bullet, 'add_impact', (res) => updateAchievementBullet(idx, bIdx, res), { jobTitle: exp.jobTitle, company: exp.company })}
+                            disabled={aiLoading}
+                            className="p-1.5 rounded bg-amber-50 dark:bg-amber-950/50 hover:bg-amber-100 dark:hover:bg-amber-900 text-amber-600 dark:text-amber-400 shrink-0 border border-amber-200 dark:border-amber-800 transition-colors disabled:opacity-50"
+                            title={bullet ? "Enhance with AI (Metrics & Action Verbs)" : "Auto-Generate ATS Achievement Bullet with AI"}
                           >
                             <Sparkles className="w-3.5 h-3.5" />
                           </button>
@@ -1197,7 +1240,17 @@ export const ResumeBuilder = () => {
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-semibold text-neutral-600 dark:text-neutral-400 mb-1">Project Description & Impact</label>
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="block text-[11px] font-semibold text-neutral-600 dark:text-neutral-400">Project Description & Impact</label>
+                        <button
+                          onClick={() => handleAiAction(proj.description, 'add_impact', (res) => updateProject(idx, 'description', res), { jobTitle: proj.name, company: proj.technologies })}
+                          disabled={aiLoading}
+                          className="text-[11px] text-amber-600 hover:text-amber-700 flex items-center gap-1 font-medium disabled:opacity-50"
+                        >
+                          <Sparkles className="w-3 h-3" />
+                          <span>{proj.description ? 'Polish with AI' : 'Generate with AI'}</span>
+                        </button>
+                      </div>
                       <textarea
                         rows={2}
                         value={proj.description || ''}
